@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-
+// import { Line, Candlestick } from 'react-chartjs-2';
 import Highcharts from "highcharts/highstock";
 import HighchartsReact from 'highcharts-react-official';
 
@@ -9,103 +9,23 @@ import moment from 'moment';
 
 function StockDetails(props) {
   const [data, setData] = useState({});
+  const [candleStickData, setCandleStickData] = useState([]);
+  const [lineAreaData, setLineAreaData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [chartType, setChartType] = useState('area');
   const params = useParams();
 
   const options = { style: 'currency', currency: 'USD' };
   const numberFormat = new Intl.NumberFormat('en-US', options);
 
-  const configPrice = {
-    yAxis: [
-      {
-        offset: 20,
-        labels: {
-          formatter: function () {
-            return numberFormat.format(this.value);
-          },
-          x: -15,
-          style: {
-            color: '#000',
-            position: 'absolute'
-          },
-          align: 'left'
-        }
-      }
-    ],
-    tooltip: {
-      shared: true,
-      formatter: function () {
-        return (
-          numberFormat.format(this.y, 0) +
-          '</b><br/>' +
-          moment(this.x).format('MMMM Do YYYY, h:mm')
-        );
-      }
-    },
-    plotOptions: {
-      series: {
-        showInNavigator: true,
-        gapSize: 6
-      }
-    },
-    rangeSelector: {
-      selected: 1
-    },
-    title: {
-      text: 'Bitcoin stock price'
-    },
-    chart: {
-      height: 600
-    },
-    credits: {
-      enabled: false
-    },
-    legend: {
-      enabled: true
-    },
-    xAxis: {
-      type: 'datetime'
-    },
-    rangeSelector: {
-      buttons: [
-        {
-          type: 'day',
-          count: 1,
-          text: '1d'
-        },
-        {
-          type: 'day',
-          count: 7,
-          text: '7d'
-        },
-        {
-          type: 'month',
-          count: 1,
-          text: '1m'
-        },
-        {
-          type: 'month',
-          count: 3,
-          text: '3m'
-        },
-        {
-          type: 'all',
-          text: 'All'
-        }
-      ],
-      selected: 4
-    },
-    series: [
-      {
-        name: 'Price',
-        type: 'spline',
-        data: data,
-        tooltip: {
-          valueDecimals: 2
-        }
-      }
-    ]
-  };
+  const getLineAreaData = (historical_data) => {
+    const lineAreaDataList = [];
+
+    for (let i in historical_data) {
+      lineAreaDataList.push([historical_data[i][0], historical_data[i][4]]);
+    }
+    return lineAreaDataList;
+  }
 
   useEffect(() => {
     async function fetchData() {
@@ -114,6 +34,8 @@ function StockDetails(props) {
         if (res.ok) {
           res.json().then((data) => {
             setData(data);
+            setCandleStickData(data['historical_data']);
+            setLineAreaData(getLineAreaData(data['historical_data']))
             setIsLoading(false);
           });
         }
@@ -121,9 +43,27 @@ function StockDetails(props) {
     }
     fetchData();
   }, []);
+
+  const configPrice = {
+    series: [{ type: chartType, data: chartType === 'candlestick' ? candleStickData : lineAreaData }],
+    rangeSelector: {
+      allButtonsEnabled: true,
+      selected: 5
+    },
+    title: {
+      text: data['companyName']
+    },
+  };
+  const chartTypeButtonHandler = () => { 
+    if (chartType === 'candlestick') { setChartType('area') } else { setChartType('candlestick') } 
+  }
+
+  
+
   return isLoading ? <>Loading....</> : <div>
-  <HighchartsReact highcharts={Highcharts} options={configPrice} />
-</div>;
+    <HighchartsReact highcharts={Highcharts} options={configPrice} constructorType={'stockChart'} />
+    <button onClick={() => {chartTypeButtonHandler()}} className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">{chartType}</button>
+  </div>;
 }
 
 export default StockDetails;

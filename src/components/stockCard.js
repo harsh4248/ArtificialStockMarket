@@ -1,14 +1,18 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import { useNavigate } from 'react-router-dom';
-function StockCard(params) {
+function StockCard(props) {
 
-    const [data, setData] = useState(params.data);
+    const [data, setData] = useState(...props.data);
     const navigate = useNavigate();
     function singleStock(id) {
         console.log('stocks/'+id);
         
         navigate('stocks/'+id);
       }
+
+    useEffect(() => {
+      setData(...props.data)
+    }, [props.data])
   return (
     <div
       className="max-w-md rounded overflow-hidden shadow-lg bg-white mx-5 my-5 cursor-pointer hover:bg-gray-100"
